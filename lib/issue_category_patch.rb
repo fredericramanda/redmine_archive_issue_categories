@@ -47,7 +47,7 @@ module IssueCategoryPatch
       if @category.save
         respond_to do |format|
           format.html do
-            flash[:notice] = l(:plugin_notice_successful_archived)
+            flash[:notice] = l(:plugin_notice_successful_unarchived)
             redirect_to_settings_in_projects
           end
           format.js

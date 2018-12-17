@@ -1,0 +1,5 @@
+# Spanish strings go here for Rails i18n
+es:
+  plugin_notice_successful_archived: Categoría inhabilitada correctamente.
+  plugin_notice_successful_unarchived: Categoría habilitada correctamente.
+  #plugin_delete_button_note: This will also remove the category name from old tickets!

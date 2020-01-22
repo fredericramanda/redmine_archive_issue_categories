@@ -1,4 +1,4 @@
-class ChangeIssueCategories < ActiveRecord::Migration
+class ChangeIssueCategories < Rails.version < '5.1' ? ActiveRecord::Migration : ActiveRecord::Migration[4.2]
   class IssueCategory < ActiveRecord::Base
   end
   

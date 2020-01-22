@@ -11,8 +11,8 @@ module IssueCategoryPatch
     base.class_eval do
       unloadable # Send unloadable so it will not be unloaded in development
       
-      #THE BEFORE_FILTER IS WHO GIVES THE AUTHORIZATION TO EXECUTE THE FUNCTION
-      before_filter :authorize, :except => [:archive, :unarchive, :archived?, :unarchived?]
+      #THE before_action IS WHO GIVES THE AUTHORIZATION TO EXECUTE THE FUNCTION
+      before_action :authorize, :except => [:archive, :unarchive, :archived?, :unarchived?]
     end
   end
   

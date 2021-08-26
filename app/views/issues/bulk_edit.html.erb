@@ -28,6 +28,7 @@
 <fieldset class="attributes">
 <legend><%= l(:label_change_properties) %></legend>
 
+<div class="splitcontent">
 <div class="splitcontentleft">
 <% if @allowed_projects.present? %>
 <p>
@@ -43,14 +44,16 @@
   <label for="issue_tracker_id"><%= l(:field_tracker) %></label>
   <%= select_tag('issue[tracker_id]',
                  content_tag('option', l(:label_no_change_option), :value => '') +
-                   options_from_collection_for_select(@trackers, :id, :name, @issue_params[:tracker_id])) %>
+                   options_from_collection_for_select(@trackers, :id, :name, @issue_params[:tracker_id]),
+                   :onchange => "updateBulkEditFrom('#{escape_javascript url_for(:action => 'bulk_edit', :format => 'js')}')") %>
 </p>
 <% if @available_statuses.any? %>
 <p>
   <label for='issue_status_id'><%= l(:field_status) %></label>
   <%= select_tag('issue[status_id]',
                  content_tag('option', l(:label_no_change_option), :value => '') +
-                   options_from_collection_for_select(@available_statuses, :id, :name, @issue_params[:status_id])) %>
+                   options_from_collection_for_select(@available_statuses, :id, :name, @issue_params[:status_id]),
+                   :onchange => "updateBulkEditFrom('#{escape_javascript url_for(:action => 'bulk_edit', :format => 'js')}')") %>
 </p>
 <% end %>
 
@@ -91,13 +94,6 @@
 </p>
 <% end %>
 
-<% @custom_fields.each do |custom_field| %>
-  <p>
-    <label><%= custom_field.name %></label>
-    <%= custom_field_tag_for_bulk_edit('issue', custom_field, @issues, @issue_params[:custom_field_values][custom_field.id.to_s]) %>
-  </p>
-<% end %>
-
 <% if @copy && Setting.link_copied_issue == 'ask' %>
 <p>
   <label for='link_copy'><%= l(:label_link_copied_issue) %></label>
@@ -106,19 +102,30 @@
 </p>
 <% end %>
 
-<% if @copy && @attachments_present %>
-<%= hidden_field_tag 'copy_attachments', '0' %>
+<% if @copy && (@attachments_present || @subtasks_present || @watchers_present) %>
 <p>
-  <label for='copy_attachments'><%= l(:label_copy_attachments) %></label>
-  <%= check_box_tag 'copy_attachments', '1', params[:copy_attachments] != '0' %>
-</p>
-<% end %>
-
-<% if @copy && @subtasks_present %>
-<%= hidden_field_tag 'copy_subtasks', '0' %>
-<p>
-  <label for='copy_subtasks'><%= l(:label_copy_subtasks) %></label>
-  <%= check_box_tag 'copy_subtasks', '1', params[:copy_subtasks] != '0' %>
+  <label><%= l(:button_copy) %></label>
+  <% if @attachments_present %>
+    <label class="block">
+      <%= hidden_field_tag 'copy_attachments', '0' %>
+      <%= check_box_tag 'copy_attachments', '1', params[:copy_attachments] != '0' %>
+      <%= l(:label_attachment_plural) %>
+    </label>
+  <% end %>
+  <% if @subtasks_present %>
+    <label class="block">
+      <%= hidden_field_tag 'copy_subtasks', '0' %>
+      <%= check_box_tag 'copy_subtasks', '1', params[:copy_subtasks] != '0' %>
+      <%= l(:label_subtask_plural) %>
+    </label>
+  <% end %>
+  <% if @watchers_present %>
+    <label class="block">
+      <%= hidden_field_tag 'copy_watchers', '0' %>
+      <%= check_box_tag 'copy_watchers', '1',  params[:copy_watchers] != '0' %>
+      <%= l(:label_issue_watchers) %>
+    </label>
+  <% end %>
 </p>
 <% end %>
 
@@ -175,14 +182,65 @@
 </p>
 <% end %>
 </div>
+</div>
+
+<% custom_fields = @custom_fields %>
+<% custom_fields_full_width = custom_fields.select { |value| value.full_width_layout? } %>
+<% custom_fields -= custom_fields_full_width %>
+
+<% if custom_fields.present? %>
+<div class="splitcontent">
+  <div class="splitcontentleft">
+   <% i = 0 %>
+   <% split_on = (custom_fields.size / 2.0).ceil - 1 %>
+   <% custom_fields.each do |custom_field| %>
+     <p>
+       <label><%= custom_field.name %></label>
+       <%= custom_field_tag_for_bulk_edit('issue', custom_field, @issues, @issue_params[:custom_field_values][custom_field.id.to_s]) %>
+     </p>
+     <% if i == split_on %>
+       </div><div class="splitcontentright">
+     <% end %>
+     <% i += 1 %>
+   <% end %>
+  </div>
+</div>
+<% end %>
+
+<% custom_fields_full_width.each do |custom_field| %>
+  <p>
+    <label><%= custom_field.name %></label>
+    <%= custom_field_tag_for_bulk_edit('issue', custom_field, @issues, @issue_params[:custom_field_values][custom_field.id.to_s]) %>
+  </p>
+  <%= wikitoolbar_for "issue_custom_field_values_#{custom_field.id}", preview_issue_path(:project_id => @project, :issue_id => nil) if custom_field.full_text_formatting? %>
+<% end %>
+
 </fieldset>
 
 <fieldset>
 <legend><%= l(:field_notes) %></legend>
-<%= text_area_tag 'notes', @notes, :cols => 60, :rows => 10, :class => 'wiki-edit' %>
+<%= text_area_tag 'notes', @notes, :cols => 60, :rows => 10, :class => 'wiki-edit',
+                  :data => {
+                      :auto_complete => true
+                  }
+%>
 <%= wikitoolbar_for 'notes' %>
+
+<% if @safe_attributes.include?('private_notes') %>
+  <label class="inline">
+  	<%= check_box_tag 'issue[private_notes]', 1, false %>
+  	<%= l(:field_private_notes) %>
+  </label>
+<% end %>
 </fieldset>
 </div>
+
+<% if @values_by_custom_field.present? %>
+<div class="flash warning">
+  <%= l(:warning_fields_cleared_on_bulk_edit) %>:<br />
+  <%= safe_join(@values_by_custom_field.map {|field, ids| content_tag "span", "#{field.name} (#{ids.size})"}, ', ') %>
+</div>
+<% end %>
 
 <p>
   <% if @copy %>
@@ -200,7 +258,7 @@
 <% end %>
 
 <%= javascript_tag do %>
-$(window).load(function(){
+$(window).on('load', function(){
   $(document).on('change', 'input[data-disables]', function(){
     if ($(this).prop('checked')){
       $($(this).data('disables')).attr('disabled', true).val('');

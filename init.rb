@@ -8,5 +8,5 @@ Redmine::Plugin.register :redmine_archive_issue_categories do
   version '0.3.0'
   url 'https://github.com/tofi86/redmine_archive_categories'
   author_url 'https://github.com/tofi86'
-  requires_redmine :version_or_higher => '3.0.0'
+  requires_redmine :version_or_higher => '4.2.2'
 end

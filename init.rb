@@ -1,6 +1,3 @@
-require_dependency 'issue_category_patch'
-
-
 Redmine::Plugin.register :redmine_archive_issue_categories do
   name 'Redmine Archive Issue Categories'
   author 'Tobias Fischer'
